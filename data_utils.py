@@ -18,6 +18,15 @@ def split_data(cora_labels, train_each_class=20, validation=500):
     remaining_mask[val_idx] = 2
     return train_mask, remaining_mask + train_mask - 1, \
         2 - 2 * train_mask - remaining_mask
-    
+
+
+def accuracy(pred, label, mask):
+    return np.multiply(mask, np.multiply(pred, label)).sum() / mask.sum()
+
+
+def IoU(pred, label, mask):
+    intersection = np.multiply(mask, np.multiply(pred, label))
+    union = np.multiply(mask, 1 - np.multiply(1 - pred, 1 - mask))
+    return np.divide(intersection.sum(axis=0), union.sum(axis=0)).mean()
 
 

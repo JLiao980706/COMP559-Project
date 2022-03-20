@@ -4,7 +4,8 @@ import json
 import tensorflow as tf
 import numpy as np
 
-import data_utils, models
+import models
+from data_utils import load_cora, split_data, accuracy, IoU
 
 
 def get_optimizer(name, lr):
@@ -18,16 +19,6 @@ def cross_entropy_loss(pred, labels, masks):
     return - tf.reduce_mean(
         tf.reduce_sum(tf.multiply(masks, tf.mutiply(labels, tf.math.log(pred))),
                       axis=-1))
-    
-
-def accuracy(pred, label, mask):
-    return np.multiply(mask, np.multiply(pred, label)).sum() / mask.sum()
-
-
-def IoU(pred, label, mask):
-    intersection = np.multiply(mask, np.multiply(pred, label))
-    union = np.multiply(mask, 1 - np.multiply(1 - pred, 1 - mask))
-    return np.divide(intersection.sum(axis=0), union.sum(axis=0)).mean()
 
 
 def train(model, features, labels, train_mask, valid_mask, loss_func, epochs,
@@ -100,8 +91,8 @@ if __name__ == '__main__':
     parser.add_argument('--result_fname', '-f', type=str, default='result')
     parser.add_argument('--model_fname', '-g', type=str, default=None)
     args = parser.parse_args()
-    adj_mat, features, labels = data_utils.load_cora()
-    train_mask, val_mask, test_mask = data_utils.split_data()
+    adj_mat, features, labels = load_cora()
+    train_mask, val_mask, test_mask = split_data()
     metrics_dict = dict(
         Accuracy=accuracy,
         IoU=IoU
