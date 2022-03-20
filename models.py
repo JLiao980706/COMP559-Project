@@ -1,10 +1,16 @@
+import json
+
 import numpy as np
 import scipy as spy
 import tensorflow as tf
 
 
-def load_model(model_config):
-    pass
+def load_model(model_config, adj_mat, input_dim, output_dim):
+    with open(model_config, 'r') as jfile:
+        config_dict = json.load(jfile)
+    return dict(
+        GCN=GCN
+    )[config_dict['name']](adj_mat, input_dim, output_dim, config_dict['hidden_dims'], activation=config_dict['activation'])
 
 
 def get_activation(activation_name):
@@ -29,9 +35,9 @@ class GraphDense(tf.keras.layers.Layer):
 class GCN(tf.keras.Model):
     
     def __init__(self, adj_mat, input_dim, output_dim, hidden_layers,
-                 activation='Relu'):
+                 activation):
         adj_hat = np.identity(adj_mat.shape[0]) + adj_mat
-        degree_mat = 1. / np.sqrt(np.diag(np.sum(adj_hat, axis=1)))
+        degree_mat = np.diag(1. / np.sqrt(np.sum(adj_hat, axis=1, keepdims=False)))
         self.agg_mat = tf.sparse.from_dense(degree_mat @ adj_hat @ degree_mat)
         
         self.activation = get_activation(activation)
