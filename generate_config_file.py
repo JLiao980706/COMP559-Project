@@ -2,7 +2,7 @@ import json
 
 model_config = {
     'name': 'GCN',
-    'hidden_dims': [1000],
+    'hidden_dims': [1000, 500],
     'activation': 'Relu'
 }
 

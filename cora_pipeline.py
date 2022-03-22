@@ -17,7 +17,7 @@ def get_optimizer(name, lr):
 
 def cross_entropy_loss(pred, labels, masks):
     return - tf.reduce_mean(
-        tf.reduce_sum(tf.multiply(masks, tf.mutiply(labels, tf.math.log(pred))),
+        tf.reduce_sum(tf.math.multiply(masks.reshape((-1, 1)), tf.math.multiply(labels, tf.math.log(pred))),
                       axis=-1))
 
 
@@ -28,7 +28,6 @@ def train(model, features, labels, train_mask, valid_mask, loss_func, epochs,
     train_metrics_hist = {name: {} for name in metrics.keys()}
     valid_loss_hist = {}
     valid_metrics_hist = {name: {} for name in metrics.keys()}
-    
     for ep_idx in range(epochs):
         
         with tf.GradientTape() as tape:
@@ -36,6 +35,7 @@ def train(model, features, labels, train_mask, valid_mask, loss_func, epochs,
             loss = loss_func(model_output, labels, train_mask)
         
         grads = tape.gradient(loss, model.get_trainable_parameters())
+        # print(grads)
         optimizer.apply_gradients(zip(grads, model.get_trainable_parameters()))
         
         if verbose > 0 and (ep_idx + 1) % verbose == 0:
@@ -63,14 +63,15 @@ def train(model, features, labels, train_mask, valid_mask, loss_func, epochs,
             for name, val_dict in valid_metrics_hist.items():
                 val_dict[ep_idx + 1] = valid_metrics[name]
 
-    return train_loss_hist, train_metrics_hist, valid_loss_hist,\
+    return train_loss_hist, valid_loss_hist, train_metrics_hist,\
         valid_metrics_hist
 
 
 def evaluate(model, features, labels, mask, loss_func, metrics={}):
     model_output = model(features)
     loss_val = loss_func(model_output, labels, mask).numpy()
-    pred_labels = np.around(model_output.numpy())
+    pred_labels = np.zeros_like(model_output.numpy())
+    pred_labels[np.arange(len(model_output)), model_output.numpy().argmax(1)] = 1
     return loss_val, {mname: mf(pred_labels, labels, mask) for
                       mname, mf in metrics.items()}
 
@@ -122,8 +123,8 @@ if __name__ == '__main__':
                                                     in vmetrics[metric_name]]
         result_dict['test_' + metric_name] = float(test_metrics[metric_name])
         
-    with open(args.fname + '.txt', 'w+') as rfile:
+    with open(args.result_fname + '.txt', 'w+') as rfile:
         rfile.write(json.dumps(result_dict))
     
-    if args.model_name is not None:
+    if args.model_fname is not None:
         model.save(args.model_fname + '.tm')

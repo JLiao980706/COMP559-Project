@@ -2,8 +2,8 @@ import numpy as np
 from scipy import sparse
 
 def load_cora():
-    feat_label = sparse.load_npz('cora_features_raw.npz')
-    return sparse.load_npz('cora_adjacency.npz'), feat_label[:,:-7], \
+    feat_label = sparse.load_npz('cora_features_raw.npz').toarray()
+    return sparse.load_npz('cora_adjacency.npz').toarray(), feat_label[:,:-7], \
         feat_label[:, -7:]
         
 
@@ -21,12 +21,12 @@ def split_data(cora_labels, train_each_class=20, validation=500):
 
 
 def accuracy(pred, label, mask):
-    return np.multiply(mask, np.multiply(pred, label)).sum() / mask.sum()
+    return np.multiply(mask.reshape((-1, 1)), np.multiply(pred, label)).sum() / mask.sum()
 
 
 def IoU(pred, label, mask):
-    intersection = np.multiply(mask, np.multiply(pred, label))
-    union = np.multiply(mask, 1 - np.multiply(1 - pred, 1 - mask))
+    intersection = np.multiply(mask.reshape((-1, 1)), np.multiply(pred, label))
+    union = np.multiply(mask.reshape((-1, 1)), 1 - np.multiply(1 - pred, 1 - mask))
     return np.divide(intersection.sum(axis=0), union.sum(axis=0)).mean()
 
 
