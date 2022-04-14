@@ -1,6 +1,7 @@
 import numpy as np
 from scipy import sparse
 
+
 def load_cora():
     feat_label = sparse.load_npz('cora_features_raw.npz').toarray()
     return sparse.load_npz('cora_adjacency.npz').toarray(), feat_label[:,:-7], \
@@ -26,7 +27,7 @@ def accuracy(pred, label, mask):
 
 def IoU(pred, label, mask):
     intersection = np.multiply(mask.reshape((-1, 1)), np.multiply(pred, label))
-    union = np.multiply(mask.reshape((-1, 1)), 1 - np.multiply(1 - pred, 1 - mask))
+    union = np.multiply(mask.reshape((-1, 1)), 1 - np.multiply(1 - pred, 1 - mask.reshape((-1, 1))))
     return np.divide(intersection.sum(axis=0), union.sum(axis=0)).mean()
 
 
