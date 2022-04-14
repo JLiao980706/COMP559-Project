@@ -1,1 +1,1 @@
-python3 cora_pipeline.py basic_gcn_config.json --epochs 100 --optimizer Adam --lr 0.001 --metrics Accuracy --verbose 10 --record 1 --result_fname result
+python cora_pipeline.py basic_gcn_config.json --preprocess True --symmetrize True --epochs 200 --optimizer Adam --lr 0.01 --metrics Accuracy --verbose 5 --record 1 --result_fname result

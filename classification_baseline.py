@@ -1,4 +1,5 @@
 import argparse
+from cProfile import label
 import numpy as np
 
 from data_utils import load_cora, split_data, accuracy, IoU
@@ -34,15 +35,14 @@ def label_spreading_binary(transition, label, train_mask, num_iter, alpha):
         return pred
 
 
-
 def ova_wrapper(binary_algo, one_hot_label):
     result = []
     for i in range(one_hot_label.shape[1]):
         label = - np.ones(one_hot_label.shape[0])
         label[one_hot_label[:,i] == 1] = 1
         result.append(binary_algo(label))
-    output_one_hot = np.zeros_like(result[0])
-    output_one_hot[:,np.argmax(np.stack(result, axis=0), axis=1)] = 1
+    output_one_hot = np.zeros_like(one_hot_label)
+    output_one_hot[range(one_hot_label.shape[0]),np.argmax(np.stack(result, axis=1), axis=1)] = 1
     return output_one_hot
 
 
@@ -52,7 +52,7 @@ def label_propagation(adjacency, one_hot_label, train_mask, num_iter=0):
     binary_algo = lambda label: label_propagation_binary(transition, label, train_mask,
                                                   num_iter)
     return ova_wrapper(binary_algo, one_hot_label)
-        
+
 
 def label_spreading(adjacency, one_hot_label, train_mask, num_iter=0,
                     alpha=0.5):
@@ -70,19 +70,41 @@ if __name__ == '__main__':
     parser.add_argument('--train_size', '-t', type=int, default=20)
     parser.add_argument('--num_iter', '-n', type=int, default=0)
     parser.add_argument('--alpha', '-a', type=float, default=0.5)
+    parser.add_argument('--undirected', '-u', type=bool, default=True)
     parser.add_argument('--metrics', '-m', type=str, nargs='*',
                         choices=['Accuracy', 'IoU'], default=['Accuracy'])
     args = parser.parse_args()
-    adj_mat, features, labels = load_cora()
-    train_mask, _, test_mask = split_data(labels, train_each_class=args.train_size, validation=0)
+    adj_mat, _, labels = load_cora()
+    train_mask, _, test_mask = split_data(labels,
+                                          train_each_class=args.train_size,
+                                          validation=0)
     metrics_dict = dict(
         Accuracy=accuracy,
         IoU=IoU
     )
+    
+    if args.undirected:
+        adj_mat = np.maximum(adj_mat, adj_mat.T)
+    degrees = np.sum(adj_mat, axis=1)
+    ns_adj = adj_mat[degrees > 0][:, degrees > 0]
+    ns_labels = labels[degrees > 0]
+    ns_train_mask = train_mask[degrees > 0]
+    
     if args.method == 'label_prop':
-        pred = label_propagation(adj_mat, labels, train_mask, num_iter=args.num_iter)
+        ns_pred = label_propagation(ns_adj, ns_labels, ns_train_mask,
+                                    num_iter=args.num_iter)
     elif args.method == 'label_spread':
-        pred = label_spreading(adj_mat, labels, train_mask, num_iter=args.num_iter, alpha=args.alpha)
+        ns_pred = label_spreading(ns_adj, ns_labels, ns_train_mask,
+                                  num_iter=args.num_iter, alpha=args.alpha)
+    pred = np.zeros_like(labels)
+    pred[degrees > 0] = ns_pred
+    rand_idx = np.random.choice(int(labels.max() - labels.min()) + 1,
+                                          size=(labels.shape[0] - \
+                                              ns_pred.shape[0],)) + \
+                                                  labels.min()
+
+    pred[degrees == 0, rand_idx.astype(np.int32)] = 1
     metrics = {name: metrics_dict[name] for name in args.metrics}
-    
-    
+    for name, metric in metrics.items():
+        eval_result = metric(pred, labels, test_mask)
+        print(f'{name} is {eval_result:.3f}.')

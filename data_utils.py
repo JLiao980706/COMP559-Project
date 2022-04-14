@@ -2,10 +2,16 @@ import numpy as np
 from scipy import sparse
 
 
-def load_cora():
+def load_cora(normalize, symmetrize):
     feat_label = sparse.load_npz('cora_features_raw.npz').toarray()
-    return sparse.load_npz('cora_adjacency.npz').toarray(), feat_label[:,:-7], \
-        feat_label[:, -7:]
+    adj = sparse.load_npz('cora_adjacency.npz').toarray()
+    features = feat_label[:,:-7]
+    if normalize:
+        feat_norm = features.sum(axis=1)
+        features[feat_norm > 0] /= feat_norm[feat_norm > 0].reshape((-1, 1))
+    if symmetrize:
+        adj = np.minimum(adj + adj.T, 1)
+    return adj, features, feat_label[:, -7:]
         
 
 def split_data(cora_labels, train_each_class=20, validation=500):
@@ -22,12 +28,14 @@ def split_data(cora_labels, train_each_class=20, validation=500):
 
 
 def accuracy(pred, label, mask):
-    return np.multiply(mask.reshape((-1, 1)), np.multiply(pred, label)).sum() / mask.sum()
+    return np.multiply(mask.reshape((-1, 1)), np.multiply(pred, label)).sum() /\
+        mask.sum()
 
 
 def IoU(pred, label, mask):
-    intersection = np.multiply(mask.reshape((-1, 1)), np.multiply(pred, label))
-    union = np.multiply(mask.reshape((-1, 1)), 1 - np.multiply(1 - pred, 1 - mask.reshape((-1, 1))))
+    mask = mask.reshape((-1, 1))
+    intersection = np.multiply(mask, np.multiply(pred, label))
+    union = np.multiply(mask, 1 - np.multiply(1 - pred, 1 - mask))
     return np.divide(intersection.sum(axis=0), union.sum(axis=0)).mean()
 
 
