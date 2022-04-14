@@ -7,8 +7,8 @@ def load_cora(normalize, symmetrize):
     adj = sparse.load_npz('cora_adjacency.npz').toarray()
     features = feat_label[:,:-7]
     if normalize:
-        feature_norm = features.sum(axis=1)
-        features[feature_norm > 0] /= feature_norm[feature_norm > 0].reshape((-1, 1))
+        feat_norm = features.sum(axis=1)
+        features[feat_norm > 0] /= feat_norm[feat_norm > 0].reshape((-1, 1))
     if symmetrize:
         adj = np.minimum(adj + adj.T, 1)
     return adj, features, feat_label[:, -7:]

@@ -52,7 +52,8 @@ def initialize_variables(shape, method):
 
 class GraphDense(tf.keras.layers.Layer):
     
-    def __init__(self, agg_mat, input_dim, output_dim, initializer, bias, activation):
+    def __init__(self, agg_mat, input_dim, output_dim, initializer, bias,
+                 activation):
         super(GraphDense, self).__init__()
         self.agg_mat = agg_mat
         self.weight = initialize_variables([input_dim, output_dim], initializer)
@@ -95,7 +96,8 @@ class GCN(tf.keras.Model):
         super(GCN, self).__init__()
         adj_hat = np.identity(adj_mat.shape[0]) + adj_mat
         degree_mat = np.diag(1. / np.sqrt(np.sum(adj_hat, axis=1)))
-        self.agg_mat = tf.cast(degree_mat @ adj_hat @ degree_mat, dtype=tf.float32)
+        self.agg_mat = tf.cast(degree_mat @ adj_hat @ degree_mat,
+                               dtype=tf.float32)
         self.gcn_layers = []
         drop_layer_init = get_dropout_layer(drop_name)
         self.gcn_layers.append(drop_layer_init(drop_input))

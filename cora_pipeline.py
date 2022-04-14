@@ -21,7 +21,8 @@ def cross_entropy_loss(logits, labels, masks):
 
 
 def train(model, features, labels, train_mask, valid_mask, loss_func, epochs,
-          optimizer_name, lr, reg=5e-4, reg_last=False, metrics={}, verbose=0, record=0):
+          optimizer_name, lr, reg=5e-4, reg_last=False, metrics={}, verbose=0,
+          record=0):
     optimizer = get_optimizer(optimizer_name, lr)
     train_loss_hist = {}
     train_metrics_hist = {name: {} for name in metrics.keys()}
@@ -70,7 +71,8 @@ def evaluate(model, features, labels, mask, loss_func, metrics={}):
     model_output = model(features)
     loss_val = loss_func(model_output, labels, mask).numpy()
     pred_labels = np.zeros_like(model_output.numpy())
-    pred_labels[np.arange(len(model_output)), model_output.numpy().argmax(1)] = 1
+    pred_labels[np.arange(len(model_output)),
+                model_output.numpy().argmax(1)] = 1
     return loss_val, {mname: mf(pred_labels, labels, mask) for
                       mname, mf in metrics.items()}
 
@@ -96,14 +98,16 @@ if __name__ == '__main__':
     parser.add_argument('--model_fname', '-g', type=str, default=None)
     args = parser.parse_args()
     adj_mat, features, labels = load_cora(args.preprocess, args.symmetrize)
-    train_mask, val_mask, test_mask = split_data(labels, train_each_class=args.train_size, validation=args.valid_size)
+    train_mask, val_mask, test_mask = split_data(labels, args.train_size, 
+                                                 args.valid_size)
     metrics_dict = dict(
         Accuracy=accuracy,
         IoU=IoU
     )
     metrics = {name: metrics_dict[name] for name in args.metrics}
     
-    model = models.load_model(args.model_config, adj_mat, features.shape[1], labels.shape[1])
+    model = models.load_model(args.model_config, adj_mat, features.shape[1],
+                              labels.shape[1])
     tloss, vloss, tmetrics, vmetrics = train(model, features, labels,
                                              train_mask, val_mask,
                                              cross_entropy_loss, args.epochs,
