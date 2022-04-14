@@ -1,1 +1,1 @@
-{"name": "GCN", "hidden_dims": [1000], "activation": "Relu"}
+{"name": "GCN", "hidden_dims": [16], "dropout": 0.5, "drop_input": 0.5, "drop_name": "sparse", "activation": "Relu", "initializer": "glorot", "bias": false}

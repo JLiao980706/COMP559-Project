@@ -2,8 +2,13 @@ import json
 
 model_config = {
     'name': 'GCN',
-    'hidden_dims': [1000, 500],
-    'activation': 'Relu'
+    'hidden_dims': [256, 16],
+    'dropout': 0.5,
+    'drop_input': 0.5,
+    'drop_name': 'sparse',
+    'activation': 'Relu',
+    'initializer': 'glorot',
+    'bias': False
 }
 
 FILENAME = 'basic_gcn_config.json'

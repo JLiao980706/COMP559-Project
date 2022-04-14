@@ -11,18 +11,17 @@ from data_utils import load_cora, split_data, accuracy, IoU
 def get_optimizer(name, lr):
     return dict(
         SGD=tf.keras.optimizers.SGD,
-        Adam=tf.keras.optimizers.Adam
-    )[name](learning_rate=lr)
+        Adam=lambda x: tf.keras.optimizers.Adam(learning_rate=x, epsilon=1e-8)
+    )[name](lr)
 
 
-def cross_entropy_loss(pred, labels, masks):
-    return - tf.reduce_mean(
-        tf.reduce_sum(tf.math.multiply(masks.reshape((-1, 1)), tf.math.multiply(labels, tf.math.log(pred))),
-                      axis=-1))
+def cross_entropy_loss(logits, labels, masks):
+    loss = tf.nn.softmax_cross_entropy_with_logits(labels, logits)
+    return tf.reduce_mean(tf.multiply(loss, masks))
 
 
 def train(model, features, labels, train_mask, valid_mask, loss_func, epochs,
-          optimizer_name, lr, metrics={}, verbose=0, record=0):
+          optimizer_name, lr, reg=5e-4, reg_last=False, metrics={}, verbose=0, record=0):
     optimizer = get_optimizer(optimizer_name, lr)
     train_loss_hist = {}
     train_metrics_hist = {name: {} for name in metrics.keys()}
@@ -31,11 +30,11 @@ def train(model, features, labels, train_mask, valid_mask, loss_func, epochs,
     for ep_idx in range(epochs):
         
         with tf.GradientTape() as tape:
-            model_output = model(features)
+            model_output = model(features, training=True)
             loss = loss_func(model_output, labels, train_mask)
+            loss += model.weight_decay(reg, reg_last)
         
         grads = tape.gradient(loss, model.get_trainable_parameters())
-        # print(grads)
         optimizer.apply_gradients(zip(grads, model.get_trainable_parameters()))
         
         if verbose > 0 and (ep_idx + 1) % verbose == 0:
@@ -81,10 +80,14 @@ if __name__ == '__main__':
     parser.add_argument('model_config', type=str)
     parser.add_argument('--train_size', '-t', type=int, default=20)
     parser.add_argument('--valid_size', '-v', type=int, default=500)
+    parser.add_argument('--preprocess', '-p', type=bool, default=True)
+    parser.add_argument('--symmetrize', '-s', type=bool, default=True)
     parser.add_argument('--epochs', '-e', type=int, default=1)
     parser.add_argument('--optimizer', '-o', type=str, choices=['SGD', 'Adam'],
                         default='SGD')
     parser.add_argument('--lr', '-l', type=float, default=0.1)
+    parser.add_argument('--reg', '-a', type=float, default=5e-4)
+    parser.add_argument('--reg_last', '-c', type=bool, default=False)
     parser.add_argument('--metrics', '-m', type=str, nargs='*',
                         choices=['Accuracy', 'IoU'], default=['Accuracy'])
     parser.add_argument('--verbose', '-b', type=int, default=0)
@@ -92,7 +95,7 @@ if __name__ == '__main__':
     parser.add_argument('--result_fname', '-f', type=str, default='result')
     parser.add_argument('--model_fname', '-g', type=str, default=None)
     args = parser.parse_args()
-    adj_mat, features, labels = load_cora()
+    adj_mat, features, labels = load_cora(args.preprocess, args.symmetrize)
     train_mask, val_mask, test_mask = split_data(labels, train_each_class=args.train_size, validation=args.valid_size)
     metrics_dict = dict(
         Accuracy=accuracy,
@@ -105,6 +108,8 @@ if __name__ == '__main__':
                                              train_mask, val_mask,
                                              cross_entropy_loss, args.epochs,
                                              args.optimizer, args.lr,
+                                             reg=args.reg,
+                                             reg_last=args.reg_last,
                                              metrics=metrics,
                                              verbose=args.verbose,
                                              record=args.record)
