@@ -88,7 +88,7 @@ if __name__ == '__main__':
     parser.add_argument('--optimizer', '-o', type=str, choices=['SGD', 'Adam'],
                         default='SGD')
     parser.add_argument('--lr', '-l', type=float, default=0.1)
-    parser.add_argument('--reg', '-a', type=float, default=5e-4)
+    parser.add_argument('--reg', '-a', type=float, default=1e-3)
     parser.add_argument('--reg_last', '-c', type=bool, default=False)
     parser.add_argument('--metrics', '-m', type=str, nargs='*',
                         choices=['Accuracy', 'IoU'], default=['Accuracy'])
