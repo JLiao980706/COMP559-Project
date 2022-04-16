@@ -27,6 +27,13 @@ def split_data(cora_labels, train_each_class=20, validation=500):
         2 - 2 * train_mask - remaining_mask
 
 
+def load_mask(train_size, idx):
+    fname = 'data_split/mask_train' + str(train_size) + '_' + str(idx) + '.npz'
+    data_dict = np.load(fname)
+    return data_dict['train_mask'], data_dict['val_mask'], \
+        data_dict['test_mask']
+
+
 def accuracy(pred, label, mask):
     return np.multiply(mask.reshape((-1, 1)), np.multiply(pred, label)).sum() /\
         mask.sum()

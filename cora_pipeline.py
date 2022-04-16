@@ -21,13 +21,15 @@ def cross_entropy_loss(logits, labels, masks):
 
 
 def train(model, features, labels, train_mask, valid_mask, loss_func, epochs,
-          optimizer_name, lr, reg=5e-4, reg_last=False, metrics={}, verbose=0,
-          record=0):
+          optimizer_name, lr, reg=5e-4, reg_last=False, patience=10, metrics={},
+          verbose=0, record=0):
     optimizer = get_optimizer(optimizer_name, lr)
     train_loss_hist = {}
     train_metrics_hist = {name: {} for name in metrics.keys()}
     valid_loss_hist = {}
     valid_metrics_hist = {name: {} for name in metrics.keys()}
+    best_val_loss = float('inf')
+    patient_counter = 0
     for ep_idx in range(epochs):
         
         with tf.GradientTape() as tape:
@@ -37,6 +39,14 @@ def train(model, features, labels, train_mask, valid_mask, loss_func, epochs,
         
         grads = tape.gradient(loss, model.get_trainable_parameters())
         optimizer.apply_gradients(zip(grads, model.get_trainable_parameters()))
+        
+        valid_loss, valid_metrics = evaluate(model, features, labels,
+                                                 valid_mask, loss_func, metrics)
+        if valid_loss < best_val_loss:
+            best_val_loss = valid_loss
+            patient_counter = 0
+        else:
+            patient_counter += 1
         
         if verbose > 0 and (ep_idx + 1) % verbose == 0:
             train_loss, train_metrics = evaluate(model, features, labels,
@@ -62,6 +72,9 @@ def train(model, features, labels, train_mask, valid_mask, loss_func, epochs,
                 val_dict[ep_idx + 1] = train_metrics[name]
             for name, val_dict in valid_metrics_hist.items():
                 val_dict[ep_idx + 1] = valid_metrics[name]
+        
+        if patient_counter == patience:
+            break
 
     return train_loss_hist, valid_loss_hist, train_metrics_hist,\
         valid_metrics_hist
