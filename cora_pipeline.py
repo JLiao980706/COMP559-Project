@@ -21,15 +21,17 @@ def cross_entropy_loss(logits, labels, masks):
 
 
 def train(model, features, labels, train_mask, valid_mask, loss_func, epochs,
-          optimizer_name, lr, reg=5e-4, reg_last=False, patience=10, metrics={},
+          optimizer_name, lr, reg=5e-4, reg_last=False, patience=7, metrics={},
           verbose=0, record=0):
     optimizer = get_optimizer(optimizer_name, lr)
     train_loss_hist = {}
     train_metrics_hist = {name: {} for name in metrics.keys()}
     valid_loss_hist = {}
     valid_metrics_hist = {name: {} for name in metrics.keys()}
-    best_val_loss = float('inf')
+    best_valid_loss = float('inf')
+    # best_parameters = []
     patient_counter = 0
+    patient_metric_name = list(metrics.keys())[0]
     for ep_idx in range(epochs):
         
         with tf.GradientTape() as tape:
@@ -42,8 +44,9 @@ def train(model, features, labels, train_mask, valid_mask, loss_func, epochs,
         
         valid_loss, valid_metrics = evaluate(model, features, labels,
                                                  valid_mask, loss_func, metrics)
-        if valid_loss < best_val_loss:
-            best_val_loss = valid_loss
+        if valid_loss < best_valid_loss:
+            best_valid_loss = valid_loss
+            # best_parameters = [weight.numpy() for weight in model.get_trainable_parameters()]
             patient_counter = 0
         else:
             patient_counter += 1
@@ -119,7 +122,9 @@ if __name__ == '__main__':
     )
     metrics = {name: metrics_dict[name] for name in args.metrics}
     
-    model = models.load_model(args.model_config, adj_mat, features.shape[1],
+    with open('./model_config/' + args.model_config, 'r') as jfile:
+        config_dict = json.load(jfile)
+    model = models.load_model(config_dict, adj_mat, features.shape[1],
                               labels.shape[1])
     tloss, vloss, tmetrics, vmetrics = train(model, features, labels,
                                              train_mask, val_mask,

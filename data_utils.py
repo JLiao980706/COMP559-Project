@@ -3,8 +3,8 @@ from scipy import sparse
 
 
 def load_cora(normalize, symmetrize):
-    feat_label = sparse.load_npz('cora_features_raw.npz').toarray()
-    adj = sparse.load_npz('cora_adjacency.npz').toarray()
+    feat_label = sparse.load_npz('./data/cora_features_raw.npz').toarray()
+    adj = sparse.load_npz('./data/cora_adjacency.npz').toarray()
     features = feat_label[:,:-7]
     if normalize:
         feat_norm = features.sum(axis=1)
